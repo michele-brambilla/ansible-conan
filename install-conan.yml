@@ -1,0 +1,36 @@
+---
+
+- hosts: conan
+  vars:
+  tasks:
+    - name: make sure pip is present
+      command: pip --version
+      register: cn
+      ignore_errors: yes
+    - name: pip non present, install
+      package:
+        name: python-pip
+      become: yes
+      when: cn["failed"]
+    - name: upgrade pip
+      command: pip install --upgrade pip 
+      become: yes
+    - name: install conan
+      pip:
+        name: conan
+        state: latest
+      become: yes
+    - name: add repositories
+      command: "conan remote add {{ item.name }} {{ item.uri }} "
+      with_items:
+        - { name: "ess-dmsc", uri: "https://api.bintray.com/conan/ess-dmsc/conan"}
+        - { name: "conan-community", uri: "https://api.bintray.com/conan/conan-community/conan"}
+      ignore_errors: yes
+    - name: create folder where store profiles
+      file:
+        path: $HOME/.conan/profiles
+        state: directory
+    - name: install profiles
+      template: 
+        src: gcc63
+        dest: $HOME/.conan/profiles
